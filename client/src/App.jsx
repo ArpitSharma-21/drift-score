@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import Reports from './Reports.jsx';
 import Badges from './Badges.jsx';
+import Guide from './Guide.jsx';
 import { ymd } from './dates.js';
 
 const CATS = ['dsa', 'assignment', 'project', 'study'];
@@ -108,6 +109,7 @@ export default function App() {
           <button className={view === 'tasks' ? 'on' : ''} onClick={() => setView('tasks')}>Tasks</button>
           <button className={view === 'reports' ? 'on' : ''} onClick={() => setView('reports')}>Reports</button>
           <button className={view === 'badges' ? 'on' : ''} onClick={() => setView('badges')}>Badges</button>
+          <button className={view === 'guide' ? 'on' : ''} onClick={() => setView('guide')}>How it works</button>
         </nav>
         <div className="tools">
           {'Notification' in window && Notification.permission === 'default' && <button onClick={() => Notification.requestPermission().then(load)}>Turn on reminders</button>}
@@ -121,6 +123,7 @@ export default function App() {
             <div className="score"><span className="n">{stats.score ?? '--'}</span><span className="of">/ 100</span></div>
             <div className="say"><b style={{ color: RISK[risk] }}>{risk}</b><span>{NOTE[risk]}</span></div>
             <Meter score={stats.score} />
+            <button className="lnk" onClick={() => setView('guide')}>How is this calculated?</button>
             {stats.driftPoint && <div className="driftnote">Your drift began the week of {new Date(stats.driftPoint + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}.
               <button onClick={() => setView('reports')}>See the reports</button></div>}
           </div>
@@ -135,7 +138,7 @@ export default function App() {
 
     <main className="main">
       {toast && <div className="toast"><span>New badge unlocked: <b>{toast}</b>.</span><span><button onClick={() => { setView('badges'); setToast(''); }}>See it</button><button onClick={() => setToast('')}>Close</button></span></div>}
-      {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} tasks={tasks} /> : (
+      {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} tasks={tasks} /> : view === 'guide' ? <Guide /> : (
         <div className="cols">
           <form className="form" onSubmit={add}>
             <h2>New task</h2>
