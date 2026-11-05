@@ -1,3 +1,4 @@
+import Heatmap from './Heatmap.jsx';
 const FILL = ['#4faa6c', '#3f9a5f', '#2f8a52', '#26784a', '#1b6b3f', '#c27a1f', '#b8661a', '#d9482b', '#a8321a', '#12161c'];
 const GOLD = '#e9c24a';
 
@@ -14,7 +15,7 @@ function Medal({ days, i, earned }) {
   );
 }
 
-export default function Badges({ data }) {
+export default function Badges({ data, tasks = [] }) {
   if (!data) return <div className="empty">Loading your streak...</div>;
   const earned = data.badges.filter(b => b.earned).length;
   const next = data.next && data.badges.find(b => b.id === data.next.id);
@@ -36,6 +37,8 @@ export default function Badges({ data }) {
           </p>
         </div>
       </section>
+
+      <Heatmap tasks={tasks} />
 
       <div className="bh"><h2>Badges</h2><span className="mute mono">{earned} of {data.badges.length} earned</span></div>
       <div className="badges">

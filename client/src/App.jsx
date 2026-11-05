@@ -135,7 +135,7 @@ export default function App() {
 
     <main className="main">
       {toast && <div className="toast"><span>New badge unlocked: <b>{toast}</b>.</span><span><button onClick={() => { setView('badges'); setToast(''); }}>See it</button><button onClick={() => setToast('')}>Close</button></span></div>}
-      {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} /> : (
+      {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} tasks={tasks} /> : (
         <div className="cols">
           <form className="form" onSubmit={add}>
             <h2>New task</h2>

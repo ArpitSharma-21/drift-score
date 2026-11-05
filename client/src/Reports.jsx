@@ -53,41 +53,6 @@ function Month({ m }) {
   );
 }
 
-const WEEKS = 18;
-function Heatmap({ tasks, sel, onSelect }) {
-  const { cols, months, active } = useMemo(() => {
-    const counts = {};
-    tasks.forEach(t => { if (t.completedAt) { const k = ymd(t.completedAt); counts[k] = (counts[k] || 0) + 1; } });
-    const start = addDays(mondayOf(new Date()), -(WEEKS - 1) * 7), today = ymd(new Date());
-    const cols = [], labels = [];
-    for (let c = 0; c < WEEKS; c++) {
-      const mon = addDays(start, c * 7), label = mon.toLocaleDateString('en-IN', { month: 'short' });
-      if (c === 0 || label !== labels[labels.length - 1].label) labels.push({ label, col: c + 1 });
-      cols.push({ week: ymd(mon), days: Array.from({ length: 7 }, (_, r) => { const k = ymd(addDays(mon, r)); return { k, n: counts[k] || 0, fut: k > today }; }) });
-    }
-    const months = labels.filter((m, i) => i === labels.length - 1 || labels[i + 1].col - m.col >= 3);
-    return { cols, months, active: cols.reduce((s, c) => s + c.days.filter(d => d.n > 0).length, 0) };
-  }, [tasks]);
-  const lvl = n => (n >= 4 ? 'l4' : n === 3 ? 'l3' : n === 2 ? 'l2' : n === 1 ? 'l1' : '');
-  return (
-    <div className="panel">
-      <div className="ph"><h3>Active days</h3><span className="sub">{active} in the last {WEEKS} weeks</span></div>
-      <div className="hm">
-        <div className="days">{['Mon', '', 'Wed', '', 'Fri', '', ''].map((d, i) => <span key={i}>{d}</span>)}</div>
-        <div className="scroll">
-          <div className="months" style={{ '--cols': WEEKS }}>{months.map(m => <span key={m.col} style={{ gridColumn: m.col }}>{m.label}</span>)}</div>
-          <div className="cells">{cols.map(c => (
-            <div key={c.week} className={'wcol' + (c.week === sel ? ' sel' : '')}>
-              {c.days.map(d => <button key={d.k} className={`cell ${d.fut ? 'fut' : lvl(d.n)}`} title={d.fut ? '' : `${d.k}: ${d.n} done`}
-                aria-label={`${d.k}: ${d.n} done`} onClick={() => !d.fut && onSelect(c.week)} />)}
-            </div>))}</div>
-        </div>
-      </div>
-      <div className="keyhm">Less{['', 'l1', 'l2', 'l3', 'l4'].map(l => <i key={l} className={'cell ' + l} style={{ width: 11, height: 11 }} />)}More</div>
-    </div>
-  );
-}
-
 function WeekPanel({ tasks, sel, row, current, onReset }) {
   const data = useMemo(() => {
     const mon = new Date(sel + 'T12:00:00');
@@ -165,7 +130,6 @@ export default function Reports() {
           : [...rep.months].reverse().map(m => <Month key={m.month} m={m} />)}
       </section>
       <aside className="side">
-        <Heatmap tasks={tasks} sel={sel} onSelect={setSel} />
         <WeekPanel tasks={tasks} sel={sel} row={rep.weeks.find(w => w.week === sel)} current={current} onReset={() => setSel(current)} />
         {stats && <Categories weeks={stats.weeks} />}
       </aside>
