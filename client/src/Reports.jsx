@@ -145,7 +145,7 @@ export default function Reports() {
   useEffect(() => { Promise.all([api('/stats/report'), api('/tasks'), api('/stats')]).then(([r, t, s]) => { setRep(r); setTasks(t); setStats(s); }); }, []);
 
   if (!rep) return <div className="empty">Loading your report...</div>;
-  if (!rep.weeks.length) return <div className="empty">No report yet. Reports appear once task deadlines have passed. Add tasks, or load the sample data from the top bar.</div>;
+  if (!rep.weeks.length) return <div className="empty">No report yet. Reports appear once task deadlines have passed. Add some tasks first.</div>;
   const best = [...rep.weeks].sort((a, b) => b.rate - a.rate)[0], worst = [...rep.weeks].sort((a, b) => a.rate - b.rate)[0];
   return (
     <div className="cols2">

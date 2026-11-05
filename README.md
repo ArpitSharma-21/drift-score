@@ -8,7 +8,7 @@ Stack: MongoDB + Express + React + Node.js (JWT auth, Recharts, node-cron, nodem
 cd server && npm install && npm run demo
 cd client && npm install && npm run dev      (second terminal)
 ```
-Open http://localhost:5173, register, click "Load sample data". Data resets on restart.
+Open http://localhost:5173 and register. Data resets on restart.
 
 ## Real setup
 1. MongoDB: create a free Atlas M0 cluster, add a database user, allow your IP, paste the connection string as MONGO_URI.

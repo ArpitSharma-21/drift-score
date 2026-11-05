@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import Reports from './Reports.jsx';
+import Badges from './Badges.jsx';
 import { ymd } from './dates.js';
 
 const CATS = ['dsa', 'assignment', 'project', 'study'];
@@ -61,11 +62,17 @@ export default function App() {
   const [view, setView] = useState('tasks');
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
+  const [streak, setStreak] = useState(null);
+  const [toast, setToast] = useState('');
   const [tab, setTab] = useState('pending');
   const [err, setErr] = useState('');
   const [t, setT] = useState({ title: '', category: 'dsa', priority: 3, dueDate: ymd(new Date()) });
 
-  const load = async () => { setTasks(await api('/tasks')); setStats(await api('/stats')); };
+  const load = async () => {
+    const [tk, st, bd] = await Promise.all([api('/tasks'), api('/stats'), api('/badges')]);
+    setTasks(tk); setStats(st); setStreak(bd);
+    if (bd.fresh?.length) setToast(bd.badges.filter(b => bd.fresh.includes(b.id)).map(b => b.name).join(', '));
+  };
   useEffect(() => { if (authed) load().catch(() => { localStorage.clear(); setAuthed(false); }); }, [authed]);
 
   const now = new Date();
@@ -100,10 +107,10 @@ export default function App() {
         <nav className="links">
           <button className={view === 'tasks' ? 'on' : ''} onClick={() => setView('tasks')}>Tasks</button>
           <button className={view === 'reports' ? 'on' : ''} onClick={() => setView('reports')}>Reports</button>
+          <button className={view === 'badges' ? 'on' : ''} onClick={() => setView('badges')}>Badges</button>
         </nav>
         <div className="tools">
           {'Notification' in window && Notification.permission === 'default' && <button onClick={() => Notification.requestPermission().then(load)}>Turn on reminders</button>}
-          {tasks.length === 0 && <button onClick={async () => { await api('/tasks/seed', 'POST'); load(); }}>Load sample data</button>}
           <button onClick={() => { localStorage.clear(); setAuthed(false); }}>Log out</button>
         </div>
       </div>
@@ -118,6 +125,7 @@ export default function App() {
               <button onClick={() => setView('reports')}>See the reports</button></div>}
           </div>
           <div className="figs">
+            <div className="fig"><b style={{ color: streak?.activeToday ? '#8fd6a4' : 'inherit' }}>{streak?.current ?? 0}</b><span>day streak</span></div>
             <div className="fig"><b>{doneCount}<small style={{ fontSize: '1rem', color: '#8f99a5' }}>/{tasks.length}</small></b><span>tasks done</span></div>
             <div className="fig"><b style={{ color: overdue.length ? '#f08a73' : 'inherit' }}>{overdue.length}</b><span>overdue</span></div>
             <div className="fig"><b>{soon.length}</b><span>due in 48 hours</span></div>
@@ -126,7 +134,8 @@ export default function App() {
     </header>
 
     <main className="main">
-      {view === 'reports' ? <Reports /> : (
+      {toast && <div className="toast"><span>New badge unlocked: <b>{toast}</b>.</span><span><button onClick={() => { setView('badges'); setToast(''); }}>See it</button><button onClick={() => setToast('')}>Close</button></span></div>}
+      {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} /> : (
         <div className="cols">
           <form className="form" onSubmit={add}>
             <h2>New task</h2>
@@ -161,6 +170,7 @@ export default function App() {
                   <button className="del" onClick={async () => { await api('/tasks/' + x._id, 'DELETE'); load(); }}>Delete</button>
                 </li>))}
             </ul>
+            {tasks.length > 0 && <button className="del clear" onClick={async () => { if (window.confirm('Delete all your tasks? Your badges stay.')) { await api('/tasks', 'DELETE'); load(); } }}>Clear all my tasks</button>}
           </section>
         </div>)}
     </main>

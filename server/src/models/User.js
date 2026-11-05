@@ -3,4 +3,6 @@ export default mongoose.model('User', new mongoose.Schema({
   name: String,
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true },
+  bestStreak: { type: Number, default: 0 },
+  badges: [{ _id: false, id: String, earnedAt: Date }],
 }, { timestamps: true }));

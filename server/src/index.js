@@ -10,6 +10,7 @@ import auth from './routes/auth.js';
 import tasks from './routes/tasks.js';
 import stats from './routes/stats.js';
 import ai from './routes/ai.js';
+import badges from './routes/badges.js';
 import { startReminders } from './services/reminders.js';
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use('/api/auth', auth);
 app.use('/api/tasks', tasks);
 app.use('/api/stats', stats);
+app.use('/api/badges', badges);
 app.use('/api/ai', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), ai); // protect your API credits
 
 // In production the server also serves the built React app (one deployment, no CORS issues).
