@@ -181,3 +181,19 @@ ul.list{list-style:none;margin:0;padding:0}
 .tres{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .qa{margin-bottom:16px}.qa p{margin:2px 0 0}
 @media(max-width:920px){.guide{grid-template-columns:1fr;gap:10px}.toc{position:static;display:flex;flex-wrap:wrap;gap:4px 14px;border:none}.toc button{padding:4px 0;border:none}.loop{grid-template-columns:1fr 1fr}.rk{grid-template-columns:12px 80px 1fr}.rk span:last-child{grid-column:2/-1}.trow{grid-template-columns:1fr 1fr}.trow span:first-child{grid-column:1/-1}}
+
+/* daily nudge */
+.nudge{display:flex;justify-content:space-between;align-items:center;gap:20px;border-left:4px solid var(--flame);background:var(--panel);padding:16px 22px;margin-bottom:28px;border-radius:0 6px 6px 0}
+.nudge p{margin:0;font-size:1.18rem;font-weight:600;letter-spacing:-.01em;line-height:1.35}
+.nudge button{background:none;border:none;color:var(--mute);text-decoration:underline;padding:0;flex:none}
+.foot{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px}
+
+/* notification settings */
+.form{position:static}
+.notify{margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
+.notify h3{font-size:1.05rem}
+.nrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.nrow .hint{margin-top:2px;max-width:30ch}
+.tick{width:20px;height:20px;accent-color:var(--green)}
+.ghostbtn:disabled{opacity:.5;cursor:default}
+.nrow .ghostbtn{white-space:nowrap}

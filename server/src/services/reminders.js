@@ -10,8 +10,9 @@ const mailer = process.env.SMTP_USER
 export function startReminders() {
   cron.schedule('0 * * * *', async () => {
     const soon = new Date(Date.now() + 24 * 3600 * 1000);
-    const due = await Task.find({ completedAt: null, reminded: false, dueDate: { $lte: soon } }).populate('user', 'email name');
+    const due = await Task.find({ completedAt: null, reminded: false, dueDate: { $lte: soon } }).populate('user', 'email name nudge');
     for (const t of due) {
+      if (!t.user?.nudge?.email) continue; // only people who opted in to emails
       const text = `Reminder: "${t.title}" (priority ${t.priority}) is due ${t.dueDate.toDateString()}.`;
       try {
         if (mailer) await mailer.sendMail({ from: process.env.SMTP_USER, to: t.user.email, subject: 'Drift Score reminder', text });

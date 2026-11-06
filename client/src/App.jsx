@@ -3,6 +3,7 @@ import { api } from './api.js';
 import Reports from './Reports.jsx';
 import Badges from './Badges.jsx';
 import Guide from './Guide.jsx';
+import NotifySettings from './NotifySettings.jsx';
 import { ymd } from './dates.js';
 
 const CATS = ['dsa', 'assignment', 'project', 'study'];
@@ -65,16 +66,18 @@ export default function App() {
   const [stats, setStats] = useState(null);
   const [streak, setStreak] = useState(null);
   const [toast, setToast] = useState('');
+  const [nudge, setNudge] = useState(null);
   const [tab, setTab] = useState('pending');
   const [err, setErr] = useState('');
   const [t, setT] = useState({ title: '', category: 'dsa', priority: 3, dueDate: ymd(new Date()) });
 
   const load = async () => {
-    const [tk, st, bd] = await Promise.all([api('/tasks'), api('/stats'), api('/badges')]);
+    const [tk, st, bd, nd] = await Promise.all([api('/tasks'), api('/stats'), api('/badges'), api('/nudges/today').catch(() => null)]);
     setTasks(tk); setStats(st); setStreak(bd);
+    if (nd && localStorage.getItem('nudgeHidden') !== ymd(new Date())) setNudge(nd);
     if (bd.fresh?.length) setToast(bd.badges.filter(b => bd.fresh.includes(b.id)).map(b => b.name).join(', '));
   };
-  useEffect(() => { if (authed) load().catch(() => { localStorage.clear(); setAuthed(false); }); }, [authed]);
+  useEffect(() => { if (authed) load().catch(e => { if (e.status === 401) { localStorage.clear(); setAuthed(false); } }); }, [authed]);
 
   const now = new Date();
   const overdue = tasks.filter(x => !x.completedAt && new Date(x.dueDate) < now);
@@ -91,6 +94,7 @@ export default function App() {
 
   const shown = tasks.filter(x => tab === 'done' ? x.completedAt : tab === 'overdue' ? overdue.includes(x) : !x.completedAt)
     .sort((a, b) => tab === 'done' ? new Date(b.completedAt) - new Date(a.completedAt) : b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate));
+  const closeNudge = () => { localStorage.setItem('nudgeHidden', ymd(new Date())); setNudge(null); };
   const add = async e => {
     e.preventDefault();
     if (!t.title.trim()) return setErr('Give the task a name.');
@@ -112,7 +116,6 @@ export default function App() {
           <button className={view === 'guide' ? 'on' : ''} onClick={() => setView('guide')}>How it works</button>
         </nav>
         <div className="tools">
-          {'Notification' in window && Notification.permission === 'default' && <button onClick={() => Notification.requestPermission().then(load)}>Turn on reminders</button>}
           <button onClick={() => { localStorage.clear(); setAuthed(false); }}>Log out</button>
         </div>
       </div>
@@ -137,10 +140,11 @@ export default function App() {
     </header>
 
     <main className="main">
+      {view === 'tasks' && nudge && <div className="nudge"><p>{nudge.text}</p><button onClick={closeNudge}>Close</button></div>}
       {toast && <div className="toast"><span>New badge unlocked: <b>{toast}</b>.</span><span><button onClick={() => { setView('badges'); setToast(''); }}>See it</button><button onClick={() => setToast('')}>Close</button></span></div>}
       {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} tasks={tasks} /> : view === 'guide' ? <Guide /> : (
         <div className="cols">
-          <form className="form" onSubmit={add}>
+          <div className="form"><form onSubmit={add}>
             <h2>New task</h2>
             <label>What needs doing</label>
             <input placeholder="e.g. Solve 3 LeetCode mediums" value={t.title} onChange={e => setT({ ...t, title: e.target.value })} />
@@ -154,6 +158,8 @@ export default function App() {
             <button className="add">Add task</button>
             <div className="err">{err}</div>
           </form>
+          <NotifySettings />
+          </div>
 
           <section>
             <div className="listhead"><h2>Your tasks</h2></div>
@@ -173,7 +179,9 @@ export default function App() {
                   <button className="del" onClick={async () => { await api('/tasks/' + x._id, 'DELETE'); load(); }}>Delete</button>
                 </li>))}
             </ul>
-            {tasks.length > 0 && <button className="del clear" onClick={async () => { if (window.confirm('Delete all your tasks? Your badges stay.')) { await api('/tasks', 'DELETE'); load(); } }}>Clear all my tasks</button>}
+            <div className="foot">
+              {tasks.length > 0 && <button className="del" onClick={async () => { if (window.confirm('Delete all your tasks? Your badges stay.')) { await api('/tasks', 'DELETE'); load(); } }}>Clear all my tasks</button>}
+            </div>
           </section>
         </div>)}
     </main>
