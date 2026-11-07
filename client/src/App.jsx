@@ -84,10 +84,23 @@ export default function App() {
   const soon = tasks.filter(x => !x.completedAt && new Date(x.dueDate) >= now && new Date(x.dueDate) - now < 48 * 3600e3);
   const doneCount = tasks.filter(x => x.completedAt).length;
 
-  // Browser reminders: fire while the tab is open.
+  // In-tab reminder for overdue or soon-due tasks, at most once a day.
+  // Phones (Android Chrome) do not allow "new Notification()", so it goes through the service worker,
+  // and any failure is swallowed: a notification problem must never take the page down.
   useEffect(() => {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    [...overdue, ...soon].slice(0, 3).forEach(x => new Notification('Drift Score', { body: `${x.title} is due ${new Date(x.dueDate).toDateString()}` }));
+    const items = [...overdue, ...soon].slice(0, 3), today = ymd(new Date());
+    if (!items.length || localStorage.getItem('remindedDay') === today) return;
+    localStorage.setItem('remindedDay', today);
+    (async () => {
+      try {
+        const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+        for (const x of items) {
+          const opts = { body: `${x.title} is due ${new Date(x.dueDate).toDateString()}`, icon: '/icon-192.png' };
+          if (reg) await reg.showNotification('Drift Score', opts); else new Notification('Drift Score', opts);
+        }
+      } catch { /* ignore */ }
+    })();
   }, [tasks.length]);
 
   if (!authed) return <Auth onDone={() => setAuthed(true)} />;
