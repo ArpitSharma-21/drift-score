@@ -51,14 +51,33 @@ test('plan validation clamps, dedupes and caps the AI output', () => {
   assert.equal(v.summary.length, 400); assert.equal(v.causes.length, 4);
   assert.equal(v.items.filter(i => i.day === 1).length, 2); assert.equal(v.items[0].title, 'Tree traversals');
   const bad = v.items.find(i => i.title === 'Bad fields'); assert.equal(bad.category, 'study'); assert.equal(bad.priority, 3);
-  assert.ok(!v.items.some(i => ['Out of range', 'Already pending', 'No day'].includes(i.title)));
+  assert.ok(!v.items.some(i => ['Out of range', 'Already pending'].includes(i.title)));
+  assert.ok(v.items.find(i => i.title === 'No day').day >= 1); // a missing day is filled in, not dropped
 });
 test('makePlan works end to end with a fake model, and rejects junk output', async () => {
   const facts = buildFacts([task({ topic: 'Binary Trees', dueDate: day(5) })], { now });
   const good = '```json\n' + JSON.stringify({ summary: 's', causes: [{ text: 'Trees untouched', evidence: 'Binary Trees: 0 of 1' }], plan: [{ day: 1, title: 'Tree traversals', category: 'dsa', topic: 'Binary Trees', priority: 5 }] }) + '\n```';
   const p = await makePlan({ facts, notes: [{ title: 'Roadmap', text: 'trees' }], focus: '', existing: [], llm: async () => good });
   assert.equal(p.items.length, 1);
-  await assert.rejects(() => makePlan({ facts, notes: [], focus: '', existing: [], llm: async () => 'sorry, I cannot do that' }), /usable plan/);
-  await assert.rejects(() => makePlan({ facts, notes: [], focus: '', existing: [], llm: async () => '{"plan":[]}' }), /no valid tasks/);
+  await assert.rejects(() => makePlan({ facts, notes: [], focus: '', existing: [], llm: async () => 'sorry, I cannot do that' }), /usable plan this time/);
+  await assert.rejects(() => makePlan({ facts, notes: [], focus: '', existing: [], llm: async () => '{"plan":[]}' }), /usable plan this time/);
   assert.equal(parseJson('noise {"a":1} noise').a, 1);
+});
+
+test('accepts the other plan shapes models tend to return', () => {
+  const a = validatePlan({ plan: { 'Day 1': ['Trees intro'], 'Day 2': [{ title: 'Diameter', priority: 'high' }] } });
+  assert.deepEqual(a.items.map(i => [i.day, i.title, i.priority]), [[1, 'Trees intro', 3], [2, 'Diameter', 4]]);
+  const b = validatePlan({ tasks: [{ task: 'Level order', day: 'Day 3', priority: 'low' }] });
+  assert.deepEqual(b.items.map(i => [i.day, i.title, i.priority]), [[3, 'Level order', 2]]);
+  const c = validatePlan({ plan: [{ day: 1, tasks: ['A1', 'B1'] }, { day: 2, tasks: ['C1'] }] });
+  assert.equal(c.items.length, 3);
+  const d = validatePlan({ plan: ['One', 'Two', 'Three', 'Four'] }, { maxPerDay: 2 });
+  assert.deepEqual(d.items.map(i => i.day), [1, 1, 2, 2]);
+});
+test('retries once when the first reply is unusable', async () => {
+  const facts = buildFacts([task({ topic: 'Trees', dueDate: day(5) })], { now });
+  let calls = 0;
+  const llm = async () => (++calls === 1 ? 'Sure! Here is your plan...' : JSON.stringify({ plan: [{ day: 1, title: 'Tree traversals' }] }));
+  const p = await makePlan({ facts, notes: [], focus: '', existing: [], llm });
+  assert.equal(calls, 2); assert.equal(p.items.length, 1);
 });

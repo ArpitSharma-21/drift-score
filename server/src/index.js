@@ -41,6 +41,7 @@ if (fs.existsSync(dist)) {
 app.use((err, req, res, next) => {
   console.error('[error]', req.method, req.originalUrl, err.message);
   if (res.headersSent) return next(err);
+  if (err.expose) return res.status(err.status || 400).json({ error: err.message }); // a message meant for the user
   res.status(500).json({ error: 'Server error. Please try again.' });
 });
 process.on('unhandledRejection', e => console.error('[unhandled]', e && e.message));

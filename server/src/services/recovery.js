@@ -1,5 +1,6 @@
 import { weeklyRates, driftScore, findDriftPoint, scoreTrend } from './scoring.js';
 import { computeStreak, dayKey } from './streak.js';
+import { UserError } from './errors.js';
 
 export const CATS = ['dsa', 'assignment', 'project', 'study'];
 
@@ -33,20 +34,36 @@ export function parseJson(t) {
   return null;
 }
 
+// Models do not always follow the requested shape, so accept the common variations.
+const KEYS = ['plan', 'tasks', 'steps', 'recovery_plan', 'recoveryPlan', 'schedule', 'days'];
+function rawItems(raw) {
+  if (!raw || typeof raw !== 'object') return [];
+  const src = Array.isArray(raw) ? raw : KEYS.map(k => raw[k]).find(v => v && typeof v === 'object');
+  if (!src) return [];
+  const one = (x, day) => (typeof x === 'string' ? { title: x, day } : { day, ...x });
+  if (!Array.isArray(src)) return Object.entries(src).flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map(x => one(x, k))); // {"Day 1": [...]}
+  return src.flatMap(x => (Array.isArray(x?.tasks) ? x.tasks.map(t => one(t, x.day)) : [one(x)]));
+}
+const LEVEL = { critical: 5, high: 4, medium: 3, low: 2 };
+
 // The AI's output is untrusted: clamp, dedupe and cap everything before anything reaches the database.
 export function validatePlan(raw, { maxPerDay = 3, existing = [] } = {}) {
   const str = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
   const seen = new Set(existing.map(s => String(s).toLowerCase().trim())), items = [];
-  for (const it of Array.isArray(raw?.plan) ? raw.plan : []) {
-    const title = str(it?.title, 120), day = Math.round(Number(it?.day)), pr = Math.round(Number(it?.priority));
-    if (!title || !(day >= 1 && day <= 7) || seen.has(title.toLowerCase())) continue;
+  rawItems(raw).forEach((it, idx) => {
+    const title = str(it?.title ?? it?.task ?? it?.name ?? it?.action ?? it?.description, 120);
+    const n = parseInt(String(it?.day ?? it?.dayNumber ?? it?.date ?? '').match(/\d+/)?.[0], 10);
+    const day = Number.isFinite(n) ? n : Math.min(7, Math.floor(idx / maxPerDay) + 1); // no day given: spread in order
+    const pr = LEVEL[String(it?.priority).toLowerCase()] ?? Math.round(Number(it?.priority));
+    const cat = String(it?.category ?? '').toLowerCase();
+    if (!title || day < 1 || day > 7 || seen.has(title.toLowerCase())) return;
     seen.add(title.toLowerCase());
-    items.push({ day, title, category: CATS.includes(it?.category) ? it.category : 'study', topic: str(it?.topic, 40), priority: pr >= 1 && pr <= 5 ? pr : 3 });
-  }
+    items.push({ day, title, category: CATS.includes(cat) ? cat : 'study', topic: str(it?.topic, 40), priority: pr >= 1 && pr <= 5 ? pr : 3 });
+  });
   const byDay = {}; items.forEach(i => (byDay[i.day] ||= []).push(i));
   const kept = Object.values(byDay).flatMap(list => list.sort((a, b) => b.priority - a.priority).slice(0, maxPerDay))
     .sort((a, b) => a.day - b.day || b.priority - a.priority).slice(0, 10);
-  const causes = (Array.isArray(raw?.causes) ? raw.causes : []).slice(0, 4).map(c => ({ text: str(c?.text, 220), evidence: str(c?.evidence, 220) })).filter(c => c.text);
+  const causes = (Array.isArray(raw?.causes) ? raw.causes : []).slice(0, 4).map(c => ({ text: str(c?.text ?? c, 220), evidence: str(c?.evidence, 220) })).filter(c => c.text);
   return { summary: str(raw?.summary, 400), causes, items: kept };
 }
 
@@ -58,16 +75,21 @@ Use ONLY the data in the user message: "facts" (computed by the app) and "notes"
 Reply with JSON only, in exactly this shape:
 {"summary":"...","causes":[{"text":"...","evidence":"..."}],"plan":[{"day":1,"title":"...","category":"dsa|assignment|project|study","topic":"...","priority":1}]}`;
 
-// llm is injected so this can be tested without a network.
+// llm is injected so this can be tested without a network. One retry if the first reply is unusable.
 export async function makePlan({ facts, notes, focus, existing, llm }) {
   const maxPerDay = Math.min(4, Math.max(2, Math.ceil((facts.avgFinishedPerActiveDay || 2) * 1.3)));
   const user = JSON.stringify({
     focus: focus || 'Find out why my score is dropping and plan my recovery.', facts,
     notes: notes.map((n, i) => ({ id: i + 1, from: n.title, text: n.text.slice(0, 600) })), limits: { maxTasksPerDay: maxPerDay, days: 7, categories: CATS },
   });
-  const raw = parseJson(await llm(SYSTEM, user));
-  if (!raw) throw new Error('The AI did not return a usable plan. Please try again.');
-  const plan = validatePlan(raw, { maxPerDay, existing });
-  if (!plan.items.length) throw new Error('The AI plan had no valid tasks. Try again with a more specific question.');
-  return { ...plan, maxPerDay };
+  let last = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    last = await llm(SYSTEM, attempt ? user + '\n\nYour previous reply could not be used. Reply with JSON only. "plan" must be a non-empty array of objects, each with a numeric "day" (1 to 7) and a "title".' : user);
+    const raw = parseJson(last);
+    if (!raw) continue;
+    const plan = validatePlan(raw, { maxPerDay, existing });
+    if (plan.items.length) return { ...plan, maxPerDay };
+  }
+  console.error('[plan] unusable AI output:', String(last).slice(0, 600));
+  throw new UserError('Drift AI could not build a usable plan this time. Try again, or ask a more specific question.');
 }
