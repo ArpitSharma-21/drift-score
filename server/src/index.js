@@ -14,6 +14,7 @@ import ai from './routes/ai.js';
 import badges from './routes/badges.js';
 import nudges from './routes/nudges.js';
 import cron from './routes/cron.js';
+import recovery from './routes/recovery.js';
 import { startReminders } from './services/reminders.js';
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/stats', stats);
 app.use('/api/badges', badges);
 app.use('/api/nudges', nudges);
 app.use('/api/cron', cron);
+app.use('/api/recovery', recovery);
 app.use('/api/ai', rateLimit({ windowMs: 60 * 60 * 1000, max: 10 }), ai); // protect your API credits
 
 // In production the server also serves the built React app (one deployment, no CORS issues).

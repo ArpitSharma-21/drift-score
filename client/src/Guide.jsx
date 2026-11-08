@@ -11,7 +11,7 @@ const RISK = [
   ['Critical', '0 to 34', '#d9482b', 'The backlog is heavy. Finish one priority task today, then plan the rest.'],
 ];
 const SECTIONS = [['loop', 'The basic loop'], ['credit', 'Priority and credit'], ['score', 'From weeks to your score'], ['risk', 'Risk levels'],
-  ['drift', 'Finding where you drifted'], ['streak', 'Streaks and badges'], ['extras', 'Reminders and AI'], ['data', 'Your data'], ['faq', 'Common questions']];
+  ['drift', 'Finding where you drifted'], ['streak', 'Streaks and badges'], ['extras', 'Reminders and AI'], ['ai', 'Drift AI plans'], ['data', 'Your data'], ['faq', 'Common questions']];
 const go = id => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 const pts = n => (Number.isInteger(n) ? n : n.toFixed(1));
 
@@ -120,6 +120,13 @@ export default function Guide() {
             <li><b>AI analysis.</b> On the Reports page, press AI analysis on a week or a month. The AI gets your score, your weekly percentages, your strongest and weakest category and, for the week you pick, the titles of the tasks you missed. It then writes a short explanation and a plan. It never changes your tasks.</li>
             <li>Because those task titles are sent to an outside AI service, keep private details out of your task names.</li>
           </ul>
+        </section>
+
+                <section id="ai" className="gsec">
+          <h2>Drift AI plans</h2>
+          <p>When your score trend falls, or whenever you ask, Drift AI builds a 7-day recovery plan. It works in four steps. The app first works out the facts from your own tasks: weekly percentages, your weakest topics, recently missed tasks and how many tasks you usually finish in a day. It then searches the study material you saved for the most relevant excerpts. The AI then explains the likely causes, quoting the evidence, and proposes small tasks. Finally the app checks the plan (a daily limit, no duplicates, valid priorities) before showing it to you.</p>
+          <p>Nothing is added to your list until you approve it, and you can untick tasks you do not want. Tasks it creates are marked "Drift AI". Progress is measured from the tasks you really complete, never from what the AI says.</p>
+          <p>When you ask for a plan, your score data, topic and task titles and the matching note excerpts are sent to an outside AI service. Keep private details out of your notes, and delete a note whenever you like.</p>
         </section>
 
         <section id="data" className="gsec">

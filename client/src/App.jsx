@@ -3,6 +3,7 @@ import { api } from './api.js';
 import Reports from './Reports.jsx';
 import Badges from './Badges.jsx';
 import Guide from './Guide.jsx';
+import Recovery from './Recovery.jsx';
 import NotifySettings from './NotifySettings.jsx';
 import { ymd } from './dates.js';
 
@@ -67,13 +68,14 @@ export default function App() {
   const [streak, setStreak] = useState(null);
   const [toast, setToast] = useState('');
   const [nudge, setNudge] = useState(null);
+  const [rec, setRec] = useState(null);
   const [tab, setTab] = useState('pending');
   const [err, setErr] = useState('');
-  const [t, setT] = useState({ title: '', category: 'dsa', priority: 3, dueDate: ymd(new Date()) });
+  const [t, setT] = useState({ title: '', category: 'dsa', topic: '', priority: 3, dueDate: ymd(new Date()) });
 
   const load = async () => {
-    const [tk, st, bd, nd] = await Promise.all([api('/tasks'), api('/stats'), api('/badges'), api('/nudges/today').catch(() => null)]);
-    setTasks(tk); setStats(st); setStreak(bd);
+    const [tk, st, bd, nd, rc] = await Promise.all([api('/tasks'), api('/stats'), api('/badges'), api('/nudges/today').catch(() => null), api('/recovery/status').catch(() => null)]);
+    setTasks(tk); setStats(st); setStreak(bd); setRec(rc);
     if (nd && localStorage.getItem('nudgeHidden') !== ymd(new Date())) setNudge(nd);
     if (bd.fresh?.length) setToast(bd.badges.filter(b => bd.fresh.includes(b.id)).map(b => b.name).join(', '));
   };
@@ -126,6 +128,7 @@ export default function App() {
           <button className={view === 'tasks' ? 'on' : ''} onClick={() => setView('tasks')}>Tasks</button>
           <button className={view === 'reports' ? 'on' : ''} onClick={() => setView('reports')}>Reports</button>
           <button className={view === 'badges' ? 'on' : ''} onClick={() => setView('badges')}>Badges</button>
+          <button className={view === 'ai' ? 'on' : ''} onClick={() => setView('ai')}>Drift AI</button>
           <button className={view === 'guide' ? 'on' : ''} onClick={() => setView('guide')}>How it works</button>
         </nav>
         <div className="tools">
@@ -154,8 +157,9 @@ export default function App() {
 
     <main className="main">
       {view === 'tasks' && nudge && <div className="nudge"><p>{nudge.text}</p><button onClick={closeNudge}>Close</button></div>}
+      {view === 'tasks' && rec?.trend?.detected && !rec.plan && <div className="toast warn"><span>Your score trend slipped from <b>{rec.trend.peak}</b> to <b>{rec.trend.now}</b>. Drift AI can build a recovery plan.</span><button onClick={() => setView('ai')}>Get a plan</button></div>}
       {toast && <div className="toast"><span>New badge unlocked: <b>{toast}</b>.</span><span><button onClick={() => { setView('badges'); setToast(''); }}>See it</button><button onClick={() => setToast('')}>Close</button></span></div>}
-      {view === 'reports' ? <Reports /> : view === 'badges' ? <Badges data={streak} tasks={tasks} /> : view === 'guide' ? <Guide /> : (
+      {view === 'reports' ? <Reports /> : view === 'ai' ? <Recovery onChanged={load} /> : view === 'badges' ? <Badges data={streak} tasks={tasks} /> : view === 'guide' ? <Guide /> : (
         <div className="cols">
           <div className="form"><form onSubmit={add}>
             <h2>New task</h2>
@@ -163,6 +167,8 @@ export default function App() {
             <input placeholder="e.g. Solve 3 LeetCode mediums" value={t.title} onChange={e => setT({ ...t, title: e.target.value })} />
             <label>Category</label>
             <div className="chips">{CATS.map(c => <button type="button" key={c} className={t.category === c ? 'on' : ''} onClick={() => setT({ ...t, category: c })}>{c}</button>)}</div>
+            <label>Topic (optional)</label>
+            <input placeholder="e.g. Binary Trees" maxLength={40} value={t.topic} onChange={e => setT({ ...t, topic: e.target.value })} />
             <label>Priority</label>
             <div className="prio">{[1, 2, 3, 4, 5].map(p => <button type="button" key={p} className={t.priority === p ? 'on' : ''} onClick={() => setT({ ...t, priority: p })}>{p}</button>)}</div>
             <div className="hint">5 is critical. Missing a 5 hurts your score five times more than missing a 1.</div>
@@ -186,7 +192,7 @@ export default function App() {
                     onClick={async () => { await api(`/tasks/${x._id}/complete`, 'PATCH'); load(); }}>{x.completedAt ? '✓' : ''}</button>
                   <div className="grow">
                     <div className="tt">{x.title}</div>
-                    <div className="meta"><span>{x.category}</span><span>due {due(x)}</span>{!x.completedAt && new Date(x.dueDate) < now && <span className="late">{late(x)} {late(x) === 1 ? 'day' : 'days'} overdue</span>}</div>
+                    <div className="meta"><span>{x.category}</span>{x.topic && <span>{x.topic}</span>}{x.source === 'drift-ai' && <span className="aitag">Drift AI</span>}<span>due {due(x)}</span>{!x.completedAt && new Date(x.dueDate) < now && <span className="late">{late(x)} {late(x) === 1 ? 'day' : 'days'} overdue</span>}</div>
                   </div>
                   <span className="tag">P{x.priority}</span>
                   <button className="del" onClick={async () => { await api('/tasks/' + x._id, 'DELETE'); load(); }}>Delete</button>

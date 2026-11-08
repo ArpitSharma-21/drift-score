@@ -73,3 +73,12 @@ export function buildReport(tasks, now = new Date()) {
   months.forEach((m, i) => { m.delta = i ? m.rate - months[i - 1].rate : null; });
   return { weeks, months };
 }
+
+// How the (smoothed) score moved over recent weeks: used to notice a decline before the user does.
+export function scoreTrend(weeks, alpha = 0.4) {
+  if (!weeks.length) return { peak: null, now: null, drop: 0, detected: false };
+  let ema = weeks[0].rate; const series = [ema];
+  for (const w of weeks.slice(1)) { ema = alpha * w.rate + (1 - alpha) * ema; series.push(ema); }
+  const peak = Math.max(...series.slice(-6)), now = series[series.length - 1], drop = Math.round(peak - now);
+  return { peak: Math.round(peak), now: Math.round(now), drop, detected: drop >= 15 };
+}
