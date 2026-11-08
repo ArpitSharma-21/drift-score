@@ -10,6 +10,7 @@ r.get('/', auth, async (req, res) => {
     Task.find({ user: req.userId, completedAt: { $ne: null } }).select('completedAt'),
     User.findById(req.userId),
   ]);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const off = parseInt(req.headers['x-tz'], 10) || 0;
   const s = computeStreak(tasks.map(t => t.completedAt), off);
   const best = Math.max(user.bestStreak || 0, s.best); // earned badges never get taken away

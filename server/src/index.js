@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import 'express-async-errors'; // a failing async route returns a 500 instead of crashing the whole server
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -33,6 +34,14 @@ if (fs.existsSync(dist)) {
   app.use(express.static(dist));
   app.get('*', (req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
+
+// Any error that reaches here becomes a clean 500, and the server keeps running.
+app.use((err, req, res, next) => {
+  console.error('[error]', req.method, req.originalUrl, err.message);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Server error. Please try again.' });
+});
+process.on('unhandledRejection', e => console.error('[unhandled]', e && e.message));
 
 await mongoose.connect(process.env.MONGO_URI);
 startReminders();

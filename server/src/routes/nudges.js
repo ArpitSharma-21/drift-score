@@ -24,6 +24,7 @@ export async function todaysNudge(user, tasks, off, now = new Date()) {
 
 r.get('/today', auth, async (req, res) => {
   const [user, tasks] = await Promise.all([User.findById(req.userId), Task.find({ user: req.userId }).select('completedAt dueDate')]);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const off = tzOf(req);
   if (user.tz !== off) user.tz = off;
   const n = await todaysNudge(user, tasks, off);
@@ -32,11 +33,13 @@ r.get('/today', auth, async (req, res) => {
 
 const settings = async userId => {
   const [user, subs] = await Promise.all([User.findById(userId), PushSub.countDocuments({ user: userId })]);
+  if (!user) return null;
   return { email: !!user.nudge?.email, hour: user.nudge?.hour ?? 19, pushSubscribed: subs > 0, pushReady: pushReady(), emailReady: emailReady(), vapidKey: process.env.VAPID_PUBLIC_KEY || null, hours: HOURS };
 };
-r.get('/settings', auth, async (req, res) => res.json(await settings(req.userId)));
+r.get('/settings', auth, async (req, res) => { const s = await settings(req.userId); if (!s) return res.status(401).json({ error: 'Unauthorized' }); res.json(s); });
 r.put('/settings', auth, async (req, res) => {
   const user = await User.findById(req.userId), { email, hour } = req.body || {};
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (typeof email === 'boolean') user.set('nudge.email', email);
   if (HOURS.includes(hour)) user.set('nudge.hour', hour);
   user.tz = tzOf(req); await user.save();
@@ -55,6 +58,7 @@ r.delete('/subscribe', auth, async (req, res) => { await PushSub.deleteOne({ use
 // Sends today's message right now to whatever the user has switched on, so they can check it works.
 r.post('/test', auth, rateLimit({ windowMs: 3600e3, max: 5 }), async (req, res) => {
   const [user, tasks] = await Promise.all([User.findById(req.userId), Task.find({ user: req.userId }).select('completedAt dueDate')]);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const n = await todaysNudge(user, tasks, tzOf(req));
   const push = await sendPush(user._id, { title: 'Drift Score', body: n.text, url: '/' });
   let email = false;
