@@ -21,6 +21,8 @@ const app = express();
 app.set('trust proxy', 1); // needed behind Render/Vercel proxies so rate limiting sees real IPs
 app.use(cors({ origin: process.env.CLIENT_ORIGIN }));
 app.use(express.json());
+// While the database is unreachable, answer clearly instead of hanging (the server itself keeps running).
+app.use('/api', (req, res, next) => (mongoose.connection.readyState === 1 ? next() : res.status(503).json({ error: 'The database is reconnecting. Please try again in a moment.' })));
 app.use('/api/auth', auth);
 app.use('/api/tasks', tasks);
 app.use('/api/stats', stats);
@@ -46,6 +48,18 @@ app.use((err, req, res, next) => {
 });
 process.on('unhandledRejection', e => console.error('[unhandled]', e && e.message));
 
-await mongoose.connect(process.env.MONGO_URI);
-startReminders();
+// Listen first, then connect with retries. A bad or slow database connection used to end the process and put
+// Render in a restart loop; now the site stays up, says what is wrong, and recovers by itself.
 app.listen(process.env.PORT || 5000, () => console.log('API running'));
+(async function connectWithRetry() {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      if (!process.env.MONGO_URI) throw new Error('MONGO_URI is not set');
+      await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 });
+      console.log('MongoDB connected'); startReminders(); return;
+    } catch (e) {
+      console.error(`[db] connection attempt ${attempt} failed: ${e.message}`);
+      await new Promise(r => setTimeout(r, Math.min(30000, 3000 * attempt)));
+    }
+  }
+})();

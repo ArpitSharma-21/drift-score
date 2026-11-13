@@ -21,7 +21,7 @@ r.get('/nudges', async (req, res) => {
     const off = u.tz || 0, today = dayKey(now, off), target = u.nudge?.hour ?? 19;
     const hour = new Date(now.getTime() - off * 60000).getUTCHours();
     if (hour < target || hour > target + 2 || u.nudge?.sentDay === today) continue;
-    const tasks = await Task.find({ user: u._id }).select('completedAt dueDate');
+    const tasks = await Task.find({ user: u._id, source: { $ne: 'sample' } }).select('completedAt dueDate');
     if (stateFor(tasks, off, now).activeToday) continue;
     const n = await todaysNudge(u, tasks, off, now);
     const pushed = await sendPush(u._id, { title: 'Drift Score', body: n.text, url: '/' });

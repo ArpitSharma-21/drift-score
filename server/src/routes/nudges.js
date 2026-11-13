@@ -23,7 +23,7 @@ export async function todaysNudge(user, tasks, off, now = new Date()) {
 }
 
 r.get('/today', auth, async (req, res) => {
-  const [user, tasks] = await Promise.all([User.findById(req.userId), Task.find({ user: req.userId }).select('completedAt dueDate')]);
+  const [user, tasks] = await Promise.all([User.findById(req.userId), Task.find({ user: req.userId, source: { $ne: 'sample' } }).select('completedAt dueDate')]);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const off = tzOf(req);
   if (user.tz !== off) user.tz = off;
@@ -57,7 +57,7 @@ r.delete('/subscribe', auth, async (req, res) => { await PushSub.deleteOne({ use
 
 // Sends today's message right now to whatever the user has switched on, so they can check it works.
 r.post('/test', auth, rateLimit({ windowMs: 3600e3, max: 5 }), async (req, res) => {
-  const [user, tasks] = await Promise.all([User.findById(req.userId), Task.find({ user: req.userId }).select('completedAt dueDate')]);
+  const [user, tasks] = await Promise.all([User.findById(req.userId), Task.find({ user: req.userId, source: { $ne: 'sample' } }).select('completedAt dueDate')]);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const n = await todaysNudge(user, tasks, tzOf(req));
   const push = await sendPush(user._id, { title: 'Drift Score', body: n.text, url: '/' });

@@ -136,7 +136,8 @@ export default function Guide() {
 
         <section id="faq" className="gsec">
           <h2>Common questions</h2>
-          {[['Why does my score show two dashes?', 'No deadline has passed yet. The score appears after at least one task\'s due date has gone by.'],
+          {[['How can I try every feature quickly?', 'While your account is empty, press Load sample data at the top right. It fills in about two months of example tasks, a streak and a study note, so every page has something to show, and you can ask Drift AI for a plan. Press Remove sample data any time. That removes only the sample and anything Drift AI created from it, never your own tasks. Badges shown while sample data is loaded are for the demo and are not saved.'],
+            ['Why does my score show two dashes?', 'No deadline has passed yet. The score appears after at least one task\'s due date has gone by.'],
             ['I finished tasks late and my score still dropped. Why?', 'Late tasks earn half credit, and tasks that are still overdue keep adding to the backlog penalty until you finish them.'],
             ['Does finishing an old overdue task help?', 'Yes. It stops counting toward the backlog penalty and it earns half credit for the week it was originally due.'],
             ['Why did my streak reset?', 'A day with no finished task ends it. Finishing even one small task a day keeps it going.']]

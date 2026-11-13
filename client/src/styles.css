@@ -220,3 +220,10 @@ textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:6
 @media(max-width:920px){.ai-wrap{grid-template-columns:1fr}.side2{position:static}}
 .pick{margin:0;font-size:.97rem;font-weight:400;color:var(--ink)}
 .pick small{margin-top:1px}
+
+/* sample data */
+.tools .accent{border-color:var(--flame);color:#fff}
+.tools .accent:hover{background:var(--flame);border-color:var(--flame)}
+
+.score .n.none{font-weight:400;color:#4a5361;font-size:clamp(56px,8vw,88px)}
+.toast button{margin-left:auto}

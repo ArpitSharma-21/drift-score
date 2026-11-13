@@ -3,5 +3,6 @@ export default mongoose.model('Doc', new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true, required: true },
   title: { type: String, required: true, maxlength: 80 },
   chars: Number, chunkCount: Number,
+  sample: { type: Boolean, default: false }, // the demo note, removed together with the sample data
   mode: { type: String, default: 'keyword' }, // 'meaning' when embeddings were stored, else 'keyword'
 }, { timestamps: true }));

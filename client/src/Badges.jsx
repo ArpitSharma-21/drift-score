@@ -31,6 +31,7 @@ export default function Badges({ data, tasks = [] }) {
             <span className="mute">Best streak: {data.best} {data.best === 1 ? 'day' : 'days'}</span>
           </div>
           <div className="bar2 big"><i style={{ width: pct + '%', background: 'var(--green)' }} /></div>
+          {data.demo && <p style={{ margin: '10px 0 0', color: '#f0c36d' }}>Sample data is loaded, so this streak and these badges are for the demo and are not saved to your account.</p>}
           <p className="mute" style={{ margin: '10px 0 0' }}>
             {data.activeToday ? 'You finished a task today. Your streak is safe until tomorrow.'
               : data.current > 0 ? 'Finish one task today to keep your streak alive.' : 'Finish a task today to start a streak.'}
@@ -47,7 +48,7 @@ export default function Badges({ data, tasks = [] }) {
             <Medal days={b.days} i={i} earned={b.earned} />
             <b>{b.name}</b>
             <span className="mute">{b.line}</span>
-            <span className="bstat mono">{b.earned ? `Earned ${date(b.earnedAt)}` : `${Math.max(0, b.days - data.current)} days to go`}</span>
+            <span className="bstat mono">{b.earned ? (b.earnedAt ? `Earned ${date(b.earnedAt)}` : 'Shown for the demo') : `${Math.max(0, b.days - data.current)} days to go`}</span>
           </div>
         ))}
       </div>

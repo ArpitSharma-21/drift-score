@@ -84,7 +84,7 @@ r.post('/plan', perUser(6), async (req, res) => {
   }));
   await RecoveryPlan.updateMany({ user: req.userId, status: 'proposed' }, { status: 'dismissed' });
   const saved = await RecoveryPlan.create({ user: req.userId, focus, summary: plan.summary, causes: plan.causes, items: plan.items,
-    sources: hits.map(h => ({ title: h.title, snippet: h.text.slice(0, 160) })), mode, trace });
+    sources: hits.map(h => ({ title: h.title, snippet: h.text.slice(0, 160) })), mode, trace, demo: tasks.some(t => t.source === 'sample') });
   res.json(pub(saved));
 });
 
